@@ -29,7 +29,7 @@ X_test = sc.transform(X_test)
 def sigmoid(a):
 	result=[]
 	for i in a:
-		result.append(1/(1+np.exp(i)))
+		result.append(1/(1+np.exp(-i)))
 	return(result)
 	
 def relu(a):
@@ -74,6 +74,7 @@ class NN:
 		self.bias1_value=0.2
 		self.bias2_value=0.2
 		self.bias3_value=0.2
+		self.learning_rate=0.01
 
 		self.bias1=[self.bias1_value for i in range(self.no_of_hidden_1_nodes)]
 		self.bias2=[self.bias2_value for i in range(self.no_of_hidden_2_nodes)]
@@ -92,7 +93,7 @@ class NN:
 	def forward_propagation(self,input_row):
 		result=[]
 		input_row=np.insert(input_row,0,1)								
-
+		self.input_row=input_row
 		self.output_of_hidden1=relu(np.dot(input_row,self.weights1))
 		self.output_of_hidden1.insert(0,1)								
 
@@ -110,8 +111,7 @@ class NN:
 		#changing the weights3 matrix 
 		d_weights3=(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output[0]) * np.array((self.output_of_hidden2)))
 		d_weights3.shape=(self.no_of_hidden_2_nodes+1,self.no_of_output_nodes)
-		self.weights3+=d_weights3
-
+		self.weights3+=(self.learning_rate*d_weights3)
 		#changing the weights2 matrix
 
 		# intermediate_output_of_hidden2=np.array(self.output_of_hidden2)
@@ -123,23 +123,74 @@ class NN:
 		# intermediate_weights2.shape=(self.no_of_hidden_2_nodes,self.no_of_hidden_1_nodes+1)
 		# d_weights2 = np.dot(intermediate_weights2,temp_result)
 		# d_weights2.shape=(self.no_of_hidden_1_nodes+1,self.no_of_hidden_2_nodes)
-		# print(d_weights2)
-
+		
 		intermediate_product=2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output_before_sigmoid[0])
 		intermediate_weights2=self.weights2
-		intermediate_weights2.shape=(self.no_of_hidden_2_nodes,self.no_of_hidden_1_nodes+1)
+		#intermediate_weights2.shape=(self.no_of_hidden_2_nodes,self.no_of_hidden_1_nodes+1)           
+		intermediate_weights2=intermediate_weights2.transpose()   
 		intermediate_output_of_hidden2=np.array(self.output_of_hidden2)
 		intermediate_output_of_hidden2.shape=(self.no_of_hidden_2_nodes+1,self.no_of_output_nodes)
 		temp_result=np.dot(intermediate_weights2*intermediate_product,np.array(relu_derivative_for_column_matrix(intermediate_output_of_hidden2)))
 		d_weights2=np.array(temp_result*self.output_of_hidden1)	
-		d_weights2.shape=(self.no_of_hidden_1_nodes+1,self.no_of_hidden_2_nodes)
-		self.weights2.shape=(self.no_of_hidden_1_nodes+1,self.no_of_hidden_2_nodes)
-		self.weights2+=d_weights2
-		print(self.weights2)
-
+		#d_weights2.shape=(self.no_of_hidden_1_nodes+1,self.no_of_hidden_2_nodes)
+		d_weights2=d_weights2.transpose()
+		#self.weights2.shape=(self.no_of_hidden_1_nodes+1,self.no_of_hidden_2_nodes)
+		self.weights2+=(self.learning_rate*d_weights2)
 		
 
 
+		#changing the weights1 matrix
+
+		#print(np.dot(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output_before_sigmoid[0]), self.weights2.T)* relu_derivative(self.output_of_hidden1))
+		#a=np.dot(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output_before_sigmoid[0]), self.weights2.T)* relu_derivative(self.output_of_hidden1)
+		#print(self.weights1)
+		#print(a)
+		#print(self.weights1)
+		#print(temp_result*relu_derivative(self.output_of_hidden1))
+		#print((np.dot(self.weights1,temp_result)*relu_derivative(self.output_of_hidden1)))
+		#print(np.dot(self.input_row.transpose(),(np.dot(self.weights1,temp_result)*relu_derivative(self.output_of_hidden1))))
+		
+		#d_weights1 = np.dot(self.weights1,  (np.dot(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output_before_sigmoid[0]), self.weights2.T) * sigmoid_derivative(self.input_row)))
+
+
+
+		#np.dot(self.input_row.T,(np.dot(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output[0]), self.weights2.T) * relu_derivative(self.output_of_hidden2)))
+		#print(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output[0]))
+		# print(np.dot(2*(self.y_actual - self.output[0]) * sigmoid_derivative(self.output[0]), self.weights2.T))
+		# print(relu_derivative_for_column_matrix(intermediate_output_of_hidden2))
+		# print(relu_derivative(self.output_of_hidden1))
+
+
+		a=2*(self.y_actual - self.output[0])
+		b=sigmoid_derivative(self.output[0])
+		c=self.weights3
+		d=relu_derivative(self.output_of_hidden2)
+		e=self.output_of_hidden1
+		print(np.dot(e,a*b*c*d))
+		#d_weights2=a*b*c*d*e
+		#print(self.weights2)
+		#print(d_weights2)
+		#self.weights2+=(self.learning_rate*d_weights2)
+
+
+
+		#changing weights1 matrix
+		a=2*(self.y_actual - self.output[0])
+		b=sigmoid_derivative(self.output[0])
+		c=self.weights3
+		d=relu_derivative(self.output_of_hidden2)
+		e=self.weights2
+		a_b_c_d_e=np.dot(a*b*c*d,e)
+		f=relu_derivative(self.output_of_hidden1)
+		temp=np.dot(f,a_b_c_d_e)
+		g=self.input_row
+		g.shape=(self.no_of_input_nodes+1,1)
+		d_weights1=g*temp
+		self.weights1+=(self.learning_rate*d_weights1)
+
+
+		#print(np.dot(np.dot((a*b*c*d),e),f))
+		
 	''' X and Y are dataframes '''
 	
 	def fit(self,X,Y):
@@ -150,21 +201,21 @@ class NN:
 		for input_row in X:
 			self.y_actual=Y[index]
 			result=self.forward_propagation(input_row)
-			#if(np.square(Y[index] - result[0])>=0.15):
-			self.back_propagation(Y)
-			break
+			if(np.square(Y[index] - result[0])>=0.15):
+				self.back_propagation(Y)
+				break
 			index+=1
-	# def predict(self,X):
+	def predict(self,X):
 
-	# 	"""
-	# 	The predict function performs a simple feed forward of weights
-	# 	and outputs yhat values 
+		"""
+		The predict function performs a simple feed forward of weights
+		and outputs yhat values 
 
-	# 	yhat is a list of the predicted value for df X
-	# 	"""
-	# 	index=0
-		#for input_row in X:
-			#print(self.forward_propagation(input_row,index,y_test))
+		yhat is a list of the predicted value for df X
+		"""
+		for input_row in X:
+			print(self.forward_propagation(input_row))
+
 
 	def CM(y_test,y_test_obs):
 		'''
@@ -213,3 +264,4 @@ class NN:
 
 net=NN()
 net.fit(X_train,y_train)
+#net.predict(X_test)
