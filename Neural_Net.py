@@ -4,7 +4,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score
-
+from sklearn import preprocessing
+import random
 '''
 Design of a Neural Network from scratch
 
@@ -17,15 +18,20 @@ dataset = pd.read_csv('LBW_Dataset.csv')
 X = dataset.iloc[:, :-1].values
 y = dataset.iloc[:, -1].values
 
-imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
+imputer = SimpleImputer(missing_values=np.nan, strategy='constant',fill_value=1)
 imputer.fit(X)
 X = imputer.transform(X)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 0)
 
+# #normalizing
+X_train=preprocessing.normalize(X_train)
+X_test=preprocessing.normalize(X_test)
+
 sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
+
 
 def sigmoid(a):
 	result=[]
@@ -72,22 +78,50 @@ class NN:
 		self.no_of_hidden_1_nodes=7
 		self.no_of_hidden_2_nodes=7
 		self.no_of_output_nodes=1
-		self.bias1_value=0.15
-		self.bias2_value=0.15
-		self.bias3_value=0.15
+		self.bias1_value=-0.2
+		self.bias2_value=-0.2
+		self.bias3_value=-0.2
 		self.learning_rate=0.05
 
 		self.bias1=[self.bias1_value for i in range(self.no_of_hidden_1_nodes)]
 		self.bias2=[self.bias2_value for i in range(self.no_of_hidden_2_nodes)]
 		self.bias3=[self.bias3_value for i in range(self.no_of_output_nodes)]
 
-		self.weights1 = np.random.rand(self.no_of_input_nodes,self.no_of_hidden_1_nodes)*np.sqrt(1/(self.no_of_input_nodes+self.no_of_hidden_2_nodes))
+		#Xavier's initialization
+		# self.weights1 = np.random.rand(self.no_of_input_nodes,self.no_of_hidden_1_nodes)*np.sqrt(1/(self.no_of_input_nodes+self.no_of_hidden_2_nodes))
+		# self.weights1 = np.insert(self.weights1,0,self.bias1,axis=0)
+
+		# self.weights2 = np.random.rand(self.no_of_hidden_1_nodes,self.no_of_hidden_2_nodes)*np.sqrt(1/(self.no_of_hidden_1_nodes+self.no_of_output_nodes))
+		# self.weights2 = np.insert(self.weights2,0,self.bias2,axis=0)
+
+		# self.weights3 = np.random.rand(self.no_of_hidden_2_nodes,self.no_of_output_nodes)*np.sqrt(1/(self.no_of_hidden_2_nodes+self.no_of_output_nodes))
+		# self.weights3 = np.insert(self.weights3,0,self.bias3,axis=0)
+
+		self.weights1=[]
+		for i in range(self.no_of_input_nodes):
+			l=[]
+			for j in range(self.no_of_hidden_1_nodes):
+				value=random.uniform(-np.sqrt(6/(self.no_of_input_nodes+self.no_of_hidden_1_nodes)),np.sqrt(1.414*(6/(self.no_of_input_nodes+self.no_of_hidden_1_nodes))))
+				l.append(value)
+			self.weights1.append(l)
 		self.weights1 = np.insert(self.weights1,0,self.bias1,axis=0)
 
-		self.weights2 = np.random.rand(self.no_of_hidden_1_nodes,self.no_of_hidden_2_nodes)*np.sqrt(1/(self.no_of_hidden_1_nodes+self.no_of_output_nodes))
+		self.weights2=[]
+		for i in range(self.no_of_hidden_1_nodes):
+			l=[]
+			for j in range(self.no_of_hidden_2_nodes):
+				value=random.uniform(-np.sqrt(6/(self.no_of_hidden_1_nodes+self.no_of_hidden_2_nodes)),np.sqrt(1.414*(6/(self.no_of_hidden_1_nodes+self.no_of_hidden_2_nodes))))
+				l.append(value)
+			self.weights2.append(l)
 		self.weights2 = np.insert(self.weights2,0,self.bias2,axis=0)
 
-		self.weights3 = np.random.rand(self.no_of_hidden_2_nodes,self.no_of_output_nodes)*np.sqrt(1/(self.no_of_hidden_2_nodes+self.no_of_output_nodes))
+		self.weights3=[]
+		for i in range(self.no_of_hidden_2_nodes):
+			l=[]
+			for j in range(self.no_of_output_nodes):
+				value=random.uniform(-np.sqrt(6/(self.no_of_hidden_2_nodes+self.no_of_output_nodes)),np.sqrt(1.414*(6/(self.no_of_hidden_2_nodes+self.no_of_output_nodes))))
+				l.append(value)
+			self.weights3.append(l)
 		self.weights3 = np.insert(self.weights3,0,self.bias3,axis=0)
 
 	def forward_propagation(self,input_row):
@@ -150,13 +184,16 @@ class NN:
 		'''
 		Function that trains the neural network by taking x_train and y_train samples as input
 		'''
-		index=0
-		for input_row in X:
-			self.y_actual=Y[index]
-			result=self.forward_propagation(input_row)
-			if(np.square(Y[index] - result[0])>=0.15):
-				self.back_propagation(Y)
-			index+=1
+		epoch=200
+		while(epoch>=0):
+			index=0
+			for input_row in X:
+				self.y_actual=Y[index]
+				result=self.forward_propagation(input_row)
+				if(np.square(Y[index] - result[0])>=0.1):
+					self.back_propagation(Y)
+				index+=1
+			epoch-=1
 	def predict(self,X):
 
 		"""
